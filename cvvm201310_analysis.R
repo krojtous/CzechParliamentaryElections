@@ -73,3 +73,12 @@ cvvm[cvvm$PO_2R %in% c(0,99) , "PO_2R"] = NA
 agreg2 = aggregate(cvvm$PO_2R, by = list(cvvm$PV_4R), mean, na.rm = TRUE)
 PV4R = cbind(PV4R, agreg2[-1])
 
+names(PV4R) = c("number","label","abs","rel","x","y")
+
+#----------------------------DRAW GRAPH----------------------------
+library(ggplot2)
+
+ggplot(PV4R, aes(y, x, label = label) ) +
+  geom_point(aes(size = rel), colour = "blue") +
+  geom_text(aes(lineheight = 0.8), size=3, vjust = -1)
+
