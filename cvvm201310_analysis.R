@@ -26,9 +26,9 @@ turnout = 59.48
 
 #RECODE PV_4 (dont know - 0,98,99 to missing)
 cvvm$PV_4R = cvvm$PV_4
-cvvm[cvvm$PV_4 %in% c(0,98,99), "PV_4R"] = NA
-data = cvvm
-variable = "PV_4R"
+cvvm[cvvm$PV_4 %in% c(0,98), "PV_4R"] = NA #dont know and probably wont go to elections
+cvvm[cvvm$PV_1 %in% c(0,9,3,4,8), "PV_4R"] = NA #people who probably wont go to election are excluded from analysis
+
 #PV4 ANALYSIS
 tableRel = function(data, variable){
   table = as.data.frame(table(data[,variable]))
@@ -44,10 +44,15 @@ limit = 3
 
 #RECODE PV_4R (small parties to missing/one category)
 others = as.vector(PV4[PV4$rel < limit, "PV_4R"])
-cvvm[cvvm$PV_4 %in% others, "PV_4R"] = NA
-#cvvm[cvvm$PV_4 %in% others, "PV_4R"] = "97"
+cvvm[cvvm$PV_4 %in% others, "PV_4R"] = "97"
 
 PV4R = tableRel(cvvm, "PV_4R")
+
+#removing rows with others(97) and dont know (99) but percents are computed with them
+PV4_Other = PV4R
+PV4R = PV4R[!PV4R$PV_4R %in% c(97,99),]
+cvvm[cvvm$PV_4R %in% c(97,99), "PV_4R"] = NA #removing others and dontknow from recoded category
+
 
 #extract labels of parties
 labels = as.data.frame(cbind(attr(cvvm$PV_4, "value.labels"), names(attr(cvvm$PV_4, "value.labels"))))
@@ -55,16 +60,16 @@ names(labels) = c("PV_4R", "label")
 
 PV4R = merge(labels, PV4R)
 
-#order by party number - important for further merging by cbind
-PV4R = PV4R[order(as.numeric(as.vector(PV4R$PV_4R))),]
+
 
 
 #-------------position of voters in 2D SPACE-----------------
 
-variable = "PI_1a"
-recodedVar = paste0("PI_1a","R")
+#variable = "PI_1a"
+# variable = "OV_132"
+variable = "OV_1"
+recodedVar = paste0(variable,"R")
 #RECODE FIRST VARIABLE
-table(cvvm[,variable ])
 cvvm[recodedVar] = cvvm[,variable ]
 cvvm[cvvm[,variable ] %in% c(0,9) , recodedVar] = NA
 
@@ -84,23 +89,23 @@ PV4R = cbind(PV4R, agreg2[-1])
 names(PV4R) = c("number","party","abs","rel","x","y")
 
 #----------------------------DRAW GRAPH----------------------------
-library(ggplot2)
+library(plotly)
 
 # ggplot(PV4R, aes(y, x, label = label) ) +
 #   geom_point(aes(size = rel), colour = "blue") +
 #   geom_text(aes(lineheight = 0.8), size=3, vjust = -1)
 
+#order by party number - important for merging with colors
+PV4R = PV4R[order(as.numeric(as.vector(PV4R$number))),]
 
-
-colors <- c('rgba(255,128,0,1)', 'rgba(0,0,0,1)', 'rgba(127,0,255,1)', 'rgba(0,0,204,1)', 'rgba(255,255,0,1)',
+colors <- c('rgba(255,128,0,1)', 'rgba(127,0,255,1)', 'rgba(0,0,204,1)', 'rgba(255,255,0,1)',
             'rgba(204,204,204,1)', 'rgba(204,204,204,1)', 'rgba(153,153,255,1)', 'rgba(255,0,0,1)')
 
 p <- plot_ly(PV4R, x = ~y, y = ~x, type = 'scatter', mode = 'markers',
-             marker = list(size = ~rel*2, opacity = 1, color = colors),
+             marker = list(size = ~rel*2.5, opacity = 1, color = colors),
              hoverinfo = 'text',
              text = ~paste('Strana:', party, '<br>Procento:', rel, '<br>N:', abs)) %>%
   layout(title = 'Rozložení stran - říjen 2013',
          xaxis = list(showgrid = FALSE, title = "Pravo-levé sebezaření (PO.2)"),
-         yaxis = list(showgrid = FALSE, title = "Hrdost být občanem ČR (OV.132)"))
+         yaxis = list(showgrid = FALSE, title = variable))
 p
-
