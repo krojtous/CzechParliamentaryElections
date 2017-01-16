@@ -54,14 +54,23 @@ PV4R = PV4R[order(as.numeric(as.vector(PV4R$PV_4R))),]
 
 #-------------position of voters in 2D SPACE-----------------
 
+# #RECODE FIRST VARIABLE
+# table(cvvm$OV_1)
+# cvvm$OV_1R = cvvm$OV_1
+# cvvm[cvvm$OV_1R %in% c(0,9) , "OV_1R"] = NA
+# 
+# #COMPUTE FIRST VARIABLE
+# agreg = aggregate(cvvm$OV_1R, by = list(as.vector(cvvm$PV_4R)), mean, na.rm = TRUE)
+# PV4R = cbind(PV4R, agreg[-1])          
+
 #RECODE FIRST VARIABLE
-table(cvvm$OV_1)
-cvvm$OV_1R = cvvm$OV_1
-cvvm[cvvm$OV_1R %in% c(0,9) , "OV_1R"] = NA
+table(cvvm$OV_132)
+cvvm$OV_132R = cvvm$OV_132
+cvvm[cvvm$OV_132R %in% c(0,9) , "OV_132R"] = NA
 
 #COMPUTE FIRST VARIABLE
-agreg = aggregate(cvvm$OV_1R, by = list(as.vector(cvvm$PV_4R)), mean, na.rm = TRUE)
-PV4R = cbind(PV4R, agreg[-1])          
+agreg = aggregate(cvvm$OV_132R, by = list(as.vector(cvvm$PV_4R)), mean, na.rm = TRUE)
+PV4R = cbind(PV4R, agreg[-1]) 
 
 
 #RECODE SECOND VARIABLE
@@ -73,12 +82,30 @@ cvvm[cvvm$PO_2R %in% c(0,99) , "PO_2R"] = NA
 agreg2 = aggregate(cvvm$PO_2R, by = list(cvvm$PV_4R), mean, na.rm = TRUE)
 PV4R = cbind(PV4R, agreg2[-1])
 
-names(PV4R) = c("number","label","abs","rel","x","y")
+names(PV4R) = c("number","party","abs","rel","x","y")
 
 #----------------------------DRAW GRAPH----------------------------
 library(ggplot2)
 
-ggplot(PV4R, aes(y, x, label = label) ) +
-  geom_point(aes(size = rel), colour = "blue") +
-  geom_text(aes(lineheight = 0.8), size=3, vjust = -1)
+# ggplot(PV4R, aes(y, x, label = label) ) +
+#   geom_point(aes(size = rel), colour = "blue") +
+#   geom_text(aes(lineheight = 0.8), size=3, vjust = -1)
 
+library(plotly)
+p <- plot_ly(midwest, x = ~percollege, color = ~state, type = "box")
+p
+
+colors <- c('rgba(255,128,0,1)', 'rgba(0,0,0,1)', 'rgba(127,0,255,1)', 'rgba(0,0,204,1)', 'rgba(255,255,0,1)',
+            'rgba(204,204,204,1)', 'rgba(204,204,204,1)', 'rgba(153,153,255,1)', 'rgba(255,0,0,1)')
+
+p <- plot_ly(PV4R, x = ~y, y = ~x, type = 'scatter', mode = 'markers',
+             marker = list(size = ~rel*2, opacity = 1, color = colors),
+             hoverinfo = 'text',
+             text = ~paste('Strana:', party, '<br>Procento:', rel, '<br>N:', abs)) %>%
+  layout(title = 'Rozložení stran - říjen 2013',
+         xaxis = list(showgrid = FALSE, title = "Pravo-levé sebezaření (PO.2)"),
+         yaxis = list(showgrid = FALSE, title = "Hrdost být občanem ČR (OV.132)"))
+p
+
+#PV93
+table(cvvm$PV_93)
