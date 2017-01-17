@@ -22,11 +22,13 @@ turnout = 59.48
 
 
 #------------------BASIC SETTINGS---------------------------
-#variable = "PI_1a"
-# variable = "OV_132"
-variable = "OV_1"
+variables = c("PI_1a", "PI_1b", "OV_1", "EV_10", "PS_1", "PO_45b", "OV_132")
+
+variable = variables[2]
 recodedVar = paste0(variable,"R")
 cluster_count = 2
+#limit for party in percents
+limit = 3
 #------------------------------------------------------------
 
 
@@ -45,9 +47,6 @@ tableRel = function(data, variable){
 }
 
 PV4 = tableRel(cvvm, "PV_4R")
-
-#limit for party in percents
-limit = 3
 
 #RECODE PV_4R (small parties to missing/one category)
 others = as.vector(PV4[PV4$rel < limit, "PV_4R"])
@@ -74,10 +73,9 @@ undicided = cvvm[cvvm$PV_1 %in% c(1,2) & cvvm$PV_4 %in% c(99),c("PI_1a", "OV_1",
 #for
 # MISSING VALUES PI_1a PI_1b OV_1 EV_10 PS_1 PO_45b OV_132 (0,9).
 # MISSING VALUES PO_2 (0,99).
-#MOZNA NAHRADIT PRUMEREM????????? A NE NA
 #NORMALIZACE KVLI KLASTROVANI KVULI ROZDILNYM SKALAM?
 
-colnames = c("PI_1a", "OV_1", "IDE_1", "EV_10", "PS_1", "OV_132", "IDE_6")
+colnames = c("PI_1a", "OV_1", "IDE_1", "EV_10", "PS_1", "OV_132", "IDE_6" )
 for(i in colnames){
   undicided[undicided[,i] %in% c(0,9), i] = NA
   undicided[is.na(undicided[,i]), i] = mean(undicided[,i],na.rm = TRUE)
@@ -121,37 +119,38 @@ PV4R$party = as.vector(PV4R$party)
 #-----------------characteristcs of undicided voters-----------
 PO_2O = aggregate(undicided,by=list(cluster_fit$cluster),FUN=mean)$PO_2
 var_other = aggregate(undicided,by=list(cluster_fit$cluster),FUN=mean)[,variable]
-str(PV4R)
+
 for(i in c(1:cluster_count)){
-  row = c(80 + i, 
-    paste0("Nerozhodnutí ", i), 
-    as.integer(cluster_fit$size[i]), #KONEC TADY U TOHOTO CYKLU RBIND PREDELAVA VSECHNO NA FAKTORY"!!!!!
-    as.numeric(round(cluster_fit$size[i]/sum(PV4_Other$abs)*100,2)),
-    as.numeric(var_other[i]),
-    as.numeric(PO_2O[i])
-    )
-  PV4R = rbind(PV4R, row)
+  PV4R[nrow(PV4R)+1,"number"] = 80 + i
+  PV4R[nrow(PV4R),"party"] = paste0("Nerozhodnutí ", i)
+  PV4R[nrow(PV4R),"abs"] =  cluster_fit$size[i]
+  PV4R[nrow(PV4R),"rel"] = round(cluster_fit$size[i]/sum(PV4_Other$abs)*100,2)
+  PV4R[nrow(PV4R),"x"] = var_other[i]
+  PV4R[nrow(PV4R),"y"] = PO_2O[i]
 }
 
+#----------------------------add aditional information-------------
+#Real result
+PV4R = merge(PV4R, results, by.x = "number", by.y = "cislo", all.x = TRUE)
 
 #----------------------------DRAW GRAPH----------------------------
 library(plotly)
-
-ggplot(PV4R, aes(y, x, label = party) ) +
-  geom_point(aes(size = rel), colour = "blue") +
-  geom_text(aes(lineheight = 0.8), size=3, vjust = -1)
+# 
+# ggplot(PV4R, aes(y, x, label = party) ) +
+#   geom_point(aes(size = rel), colour = "blue") +
+#   geom_text(aes(lineheight = 0.8), size=3, vjust = -1)
 
 #order by party number - important for merging with colors
 PV4R = PV4R[order(as.numeric(as.vector(PV4R$number))),]
 
 
 colors <- c('rgba(255,128,0,1)', 'rgba(127,0,255,1)', 'rgba(0,0,204,1)', 'rgba(255,255,0,1)',
-            'rgba(204,204,204,1)', 'rgba(204,204,204,1)', 'rgba(153,153,255,1)', 'rgba(255,0,0,1)', 'rgba(255,0,0,1)', 'rgba(255,0,0,1)')
+            'rgba(204,204,204,1)', 'rgba(204,204,204,1)', 'rgba(153,153,255,1)', 'rgba(255,0,0,1)')
 
 p <- plot_ly(PV4R, x = ~y, y = ~x, type = 'scatter', mode = 'markers',
              marker = list(size = ~rel*2.5, opacity = 1, color = colors),
              hoverinfo = 'text',
-             text = ~paste('Strana:', party, '<br>Procento:', rel, '<br>N:', abs)) %>%
+             text = ~paste('<b>',party, '</b><br>Model:', rel, '%, N =', abs,'<br>Real:   ',procenta,' %, N =', celkem)) %>%
   layout(title = 'Rozložení stran - říjen 2013',
          xaxis = list(showgrid = FALSE, title = "Levo-pravé sebezaření (PO.2)"),
          yaxis = list(showgrid = FALSE, title = variable))
