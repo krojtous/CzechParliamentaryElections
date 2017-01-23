@@ -9,7 +9,8 @@ VALUE LABELS filter_$ 0 'Not Selected' 1 'Selected'.
 FORMATS filter_$ (f1.0).
 FILTER BY filter_$.
 EXECUTE.
-
+fre PV_1 PV_4.
+fre PO_4a.
 CROSSTABS
   /TABLES=PV_4 BY PV_1
   /FORMAT=AVALUE TABLES
