@@ -11,6 +11,11 @@ cvvm = read.spss(file = "./data/V1310/V1310_F1.sav",
                  use.value.labels = FALSE,
                  use.missings = FALSE)
 
+#---------------Extract party labels-------------------------------------------
+labels = as.data.frame(cbind(attr(cvvm$PV_4, "value.labels"), names(attr(cvvm$PV_4, "value.labels"))))
+names(labels) = c("voting", "label")
+
+
 #-------------Compute voting variable and turnout---------------------------
 #No and rather no are voters excluded
 cvvm$voting = cvvm$PV_4
@@ -34,8 +39,24 @@ cvvm[cvvm$PV_4 %in% others, "voting"] = "97"
 
 votingBig = tableRel(cvvm, "voting")
 
-#------------Remove small parties from variable voting----------------------
+#------------Remove category others from Big table (but in 100% is included category others)----------------------
+votingBig = votingBig[votingBig$voting != "97",]
 
+#-----------Remove category others from var voting---------------------
+cvvm = cvvm[cvvm$voting != "97" & cvvm$voting != "99" & !is.na(cvvm$voting),]
+table(cvvm$voting) 
+#-----------Add labels-------------------------------------------------
+merge(labels, votingBig)
+
+attit = c("PV_170a","PV_170b","PV_170c","PV_170d","PV_170g","PV_170h","PV_170i","PV_170j")	#removed "PV_170e" - strana zelenych
+
+#mean of attitudes to toher parties
+attitTab = aggregate(cvvm[,attit], by=list(cvvm$voting), FUN = mean)
+attitTab = merge(labels, attitTab, by.x = "voting", by.y = "Group.1")
+
+
+cvvm$
+table(cvvm$voting)
 
 
 
