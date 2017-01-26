@@ -48,15 +48,63 @@ table(cvvm$voting)
 #-----------Add labels-------------------------------------------------
 merge(labels, votingBig)
 
-attit = c("PV_170a","PV_170b","PV_170c","PV_170d","PV_170g","PV_170h","PV_170i","PV_170j")	#removed "PV_170e" - strana zelenych
 
-#mean of attitudes to toher parties
-attitTab = aggregate(cvvm[,attit], by=list(cvvm$voting), FUN = mean)
+#-----------variables sorted by party number----------------------------
+attit = c("PV_170a","PV_170d","PV_170b","PV_170g","PV_170j","PV_170i","PV_170h","PV_170c")	#removed "PV_170e" - strana zelenych
+# PV.170a Volil by stranu – ČSSD
+# PV.170b Volil by stranu – ODS
+# PV.170c Volil by stranu – KSČM
+# PV.170d Volil by stranu – TOP 09
+# PV.170e Volil by stranu – SZ
+# PV.170g Volil by stranu – KDU-ČSL
+# PV.170h Volil by stranu – ANO 2011
+# PV.170i Volil by stranu – Úsvit
+# PV.170j Volil by stranu – SPOZ
+
+#----------remove dont know (99)----------------------------
+for(i in attit){
+  cvvm[cvvm[,i] %in% "99",i] = NA
+}
+
+#----------Mean of attitudes to toher parties-------------------------
+attitTab = aggregate(cvvm[,attit], by=list(cvvm$voting), FUN = mean, na.rm = TRUE)
 attitTab = merge(labels, attitTab, by.x = "voting", by.y = "Group.1")
+attitTab = attitTab[order(as.numeric(as.vector(attitTab$voting))),]
+
+#---------proximity to distance, diag to zero, symetrize-----------------------------
+s = attitTab[,c(3:10)]
+s = 0.5 * (s + t(s)) 
+s = 1/s *10
+diag(s) = 0
 
 
-cvvm$
-table(cvvm$voting)
+#--------MDS-------------------------------------------------------------------
+fit = cmdscale(s, eig = TRUE, k = 2)
+
+#-------extract data for plot--------------------------------------------
+MDS = data.frame(fit$points[, 1])
+MDS = cbind (MDS, fit$points[, 2])
+
+
+
+votingBig = votingBig[order(as.numeric(as.vector(votingBig$voting))),]
+tmp = votingBig[votingBig$voting != 99, c(2,3)]
+
+MDS = cbind ( attitTab[,2], tmp, MDS)
+
+names(MDS) = c("party", "abs", "rel", "x", "y")
+
+#-------Plot in plotly----------------------------------------------------
+
+library(plotly)
+p <- plot_ly(MDS, x = ~x, y = ~y, type = 'scatter', mode = 'markers',
+             marker = list(size = ~rel*2.5, opacity = 1, color = 'blue'),
+             hoverinfo = 'text',
+             text = ~paste('<b>',party, '</b><br>')) %>%
+  layout(title = 'Rozložení stran - říjen 2013 (MDS)',
+         xaxis = list(showgrid = FALSE, title = "x"),
+         yaxis = list(showgrid = FALSE, title = "y"))
+p
 
 
 
